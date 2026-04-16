@@ -29,9 +29,11 @@ public class JobExecution {
     private UUID id;
 
     /**
-     * Composition: cascade DELETE ensures executions are removed with the job.
+        * Composition: cascade DELETE ensures executions are removed with the job.
+        * Changed to EAGER so Hibernate reads the discriminator column immediately
+        * and instantiates the true polymorphic subclass (ScriptJob or JarJob).
      */
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+        @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "job_id", nullable = false)
     private Job job;
 

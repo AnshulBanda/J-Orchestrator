@@ -27,4 +27,9 @@ public class NodeController {
     public ResponseEntity<List<WorkerNode>> getNodes() {
         return ResponseEntity.ok(service.getAllNodes());
     }
+
+    @PostMapping("/spawn")
+    public ResponseEntity<WorkerNode> spawnNode() {
+        return ResponseEntity.ok(service.spawnSimulatedNode());
+    }
 }

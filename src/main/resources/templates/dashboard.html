@@ -2,19 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>J-Orchestrator | Cluster Dashboard</title>
+    <title>J-Orchestrator | Real Execution Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
 <div class="container py-4">
-    <header class="pb-3 mb-4 border-bottom">
-        <h1 class="fs-2">J-Orchestrator <span class="badge bg-primary fs-6">v1.0</span></h1>
+    <header class="pb-3 mb-4 border-bottom d-flex justify-content-between align-items-center">
+        <h1 class="fs-2 mb-0">J-Orchestrator <span class="badge bg-primary fs-6">v1.1</span></h1>
+        <button id="spawnBtn" class="btn btn-outline-dark fw-bold">+ Spawn Worker Node</button>
     </header>
 
     <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card bg-dark text-white h-100">
+            <div class="card bg-dark text-white h-100 shadow-sm">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Nodes (Available/Total)</h6>
                     <h2 th:text="${health.availableNodes} + ' / ' + ${health.totalNodes}">0 / 0</h2>
@@ -22,7 +23,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-dark text-white h-100">
+            <div class="card bg-dark text-white h-100 shadow-sm">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Active Executions</h6>
                     <h2 th:text="${health.activeExecutions}">0</h2>
@@ -30,7 +31,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-dark text-white h-100">
+            <div class="card bg-dark text-white h-100 shadow-sm">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Pending Jobs</h6>
                     <h2 th:text="${health.pendingJobs}">0</h2>
@@ -38,7 +39,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-dark text-white h-100">
+            <div class="card bg-dark text-white h-100 shadow-sm">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Completed Jobs</h6>
                     <h2 th:text="${health.completedJobs}">0</h2>
@@ -51,26 +52,26 @@
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Submit New Job</h5>
+                    <h5 class="mb-0">Submit Job (Real Execution)</h5>
                 </div>
                 <div class="card-body">
                     <form id="jobForm">
                         <div class="mb-3">
                             <label class="form-label">Job Name</label>
-                            <input type="text" id="jobName" class="form-control" required placeholder="e.g. nightly-backup">
+                            <input type="text" id="jobName" class="form-control" required placeholder="e.g. math-script">
                         </div>
+                        <input type="hidden" id="jobType" value="SCRIPT">
                         <div class="mb-3">
-                            <label class="form-label">Job Type</label>
-                            <select id="jobType" class="form-select">
-                                <option value="SCRIPT">Shell Script</option>
-                                <option value="JAR">Java JAR</option>
-                            </select>
+                            <label class="form-label">Bash Script Content</label>
+                            <textarea id="scriptContent" class="form-control font-monospace" rows="4" required>
+echo "Starting job on $HOSTNAME..."
+sleep 5
+echo "Doing some intense computation..."
+echo "2 + 2 = $((2+2))"
+echo "Job finished."
+                            </textarea>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Script Content / Command</label>
-                            <textarea id="scriptContent" class="form-control" rows="3" required>echo "Hello from J-Orchestrator!"</textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">Submit Job</button>
+                        <button type="submit" class="btn btn-success w-100">Dispatch to Cluster</button>
                     </form>
                 </div>
             </div>
@@ -86,7 +87,6 @@
                         <thead class="table-light">
                         <tr>
                             <th>Hostname</th>
-                            <th>IP Address</th>
                             <th>Status</th>
                             <th>Current Load</th>
                             <th>Hardware</th>
@@ -94,14 +94,18 @@
                         </thead>
                         <tbody>
                         <tr th:each="node : ${nodes}">
-                            <td th:text="${node.hostname}">worker-1</td>
-                            <td th:text="${node.ipAddress}">10.0.0.1</td>
+                            <td class="fw-bold" th:text="${node.hostname}">worker-1</td>
                             <td>
                                 <span class="badge" 
-                                      th:classappend="${node.status.name() == 'AVAILABLE'} ? 'bg-success' : (${node.status.name() == 'OFFLINE'} ? 'bg-danger' : 'bg-warning')"
+                                      th:classappend="${node.status.name() == 'AVAILABLE'} ? 'bg-success' : 'bg-warning'"
                                       th:text="${node.status}">AVAILABLE</span>
                             </td>
-                            <td th:text="${node.currentLoad} + ' tasks'">0 tasks</td>
+                            <td>
+                                <span th:text="${node.currentLoad} + ' tasks'">0 tasks</span>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-info" th:style="'width: ' + (${node.currentLoad} * 33) + '%'"></div>
+                                </div>
+                            </td>
                             <td th:text="${node.cpuCores} + ' Cores, ' + ${node.memoryMb} + ' MB'">8 Cores</td>
                         </tr>
                         </tbody>
@@ -111,28 +115,28 @@
 
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Recent Jobs</h5>
+                    <h5 class="mb-0">Execution History</h5>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                         <tr>
-                            <th>ID (Short)</th>
-                            <th>Name</th>
-                            <th>Type</th>
+                            <th>Job Name</th>
+                            <th>Assigned Node</th>
                             <th>Status</th>
+                            <th>Exit Code</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="job : ${jobs}">
-                            <td th:text="${#strings.substring(job.id, 0, 8)}">1234abcd</td>
-                            <td th:text="${job.name}">test-job</td>
-                            <td th:text="${job.getClass().getSimpleName()}">ScriptJob</td>
+                        <tr th:each="exec : ${executions}">
+                            <td th:text="${exec.job.name}">test-job</td>
+                            <td class="text-primary fw-bold" th:text="${exec.assignedNode != null ? exec.assignedNode.hostname : 'Pending...'}">worker-1</td>
                             <td>
                                 <span class="badge" 
-                                      th:classappend="${job.status.name() == 'COMPLETED'} ? 'bg-success' : (${job.status.name() == 'FAILED'} ? 'bg-danger' : 'bg-primary')"
-                                      th:text="${job.status}">PENDING</span>
+                                      th:classappend="${exec.status.name() == 'COMPLETED'} ? 'bg-success' : (${exec.status.name() == 'FAILED'} ? 'bg-danger' : 'bg-primary')"
+                                      th:text="${exec.status}">RUNNING</span>
                             </td>
+                            <td th:text="${exec.exitCode != null ? exec.exitCode : '-'}">-</td>
                         </tr>
                         </tbody>
                     </table>
@@ -143,36 +147,34 @@
 </div>
 
 <script>
+    // Submit Job Logic
     document.getElementById('jobForm').addEventListener('submit', function(e) {
-        e.preventDefault(); // Stop standard HTML form submission
+        e.preventDefault();
+        const btn = this.querySelector('button');
+        btn.disabled = true;
+        btn.innerText = "Dispatching...";
 
-        // Build the JSON payload matching your JobSubmissionRequest DTO
         const payload = {
             name: document.getElementById('jobName').value,
             jobType: document.getElementById('jobType').value,
             scriptContent: document.getElementById('scriptContent').value,
             interpreter: "bash",
-            resourceConstraints: {
-                requiredCpuCores: 1,
-                requiredMemoryMb: 128,
-                maxExecutionSeconds: 60
-            }
+            resourceConstraints: { requiredCpuCores: 1, requiredMemoryMb: 128, maxExecutionSeconds: 60 }
         };
 
-        // Send to your backend
         fetch('/api/jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if(response.ok) {
-                window.location.reload(); // Reload page to see the new job
-            } else {
-                alert("Failed to submit job. Check server logs.");
-            }
-        })
-        .catch(error => console.error('Error:', error));
+        }).then(() => window.location.reload());
+    });
+
+    // Spawn Node Logic
+    document.getElementById('spawnBtn').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerText = "Spawning...";
+        fetch('/api/nodes/spawn', { method: 'POST' })
+            .then(() => window.location.reload());
     });
 </script>
 

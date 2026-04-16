@@ -51,4 +51,21 @@ public class NodeRegistryService {
             }
         }
     }
+
+    // Add this to NodeRegistryService.java
+    @Transactional
+    public WorkerNode spawnSimulatedNode() {
+        long count = nodeRepository.count() + 1;
+        WorkerNode newNode = new WorkerNode(
+            "worker-node-" + count,
+            "10.0.0." + count,
+            NodeStatus.AVAILABLE,
+            Instant.now(),
+            (int) (Math.random() * 8) + 2, // Random cores between 2 and 9
+            8192,
+            0
+        );
+        log.info("Dynamically spawned new worker node: {}", newNode.getHostname());
+        return nodeRepository.save(newNode);
+    }
 }
